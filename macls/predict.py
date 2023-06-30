@@ -139,7 +139,7 @@ class MAClsPredictor:
         input_len_ratio = torch.tensor([1], dtype=torch.float32, device=self.device)
         audio_feature, _ = self._audio_featurizer(input_data, input_len_ratio)
         if feature_save_path is not None:
-            audio_feature.numpy().tofile(feature_save_path)
+            audio_feature.cpu().numpy().tofile(feature_save_path)
         # 执行预测
         output = self.predictor(audio_feature)
         result = torch.nn.functional.softmax(output, dim=-1)[0]

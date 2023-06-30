@@ -482,6 +482,8 @@ class MAClsTrainer(object):
         
         x = torch.rand((1, 98, 64), device=self.device)
         
+        # print(infer_model)
+        
         torch.onnx.export(infer_model,
                           x,
                           infer_model_path,
