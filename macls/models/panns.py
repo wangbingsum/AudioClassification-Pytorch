@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -88,6 +89,8 @@ class PANNS_CNN6(nn.Module):
         self.conv_block3 = ConvBlock5x5(in_channels=128, out_channels=256)
         self.conv_block4 = ConvBlock5x5(in_channels=256, out_channels=512)
 
+        self.pool = nn.AdaptiveAvgPool2d((1, 1))
+        
         self.fc1 = nn.Linear(512, self.emb_size)
         self.fc_audioset = nn.Linear(self.emb_size, 527)
         self.extract_embedding = extract_embedding
@@ -113,8 +116,10 @@ class PANNS_CNN6(nn.Module):
         x = self.conv_block4(x, pool_size=(2, 2), pool_type='avg')
         x = F.dropout(x, p=0.2, training=self.training)
 
-        x = x.mean(dim=3)
-        x = x.max(dim=2)[0] + x.mean(dim=2)
+        x = self.pool(x)
+        x = x.reshape(-1, x.size(1))
+        # x = x.mean(dim=3)
+        # x = x.max(dim=2)[0] + x.mean(dim=2)
 
         x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu(self.fc1(x))
@@ -150,6 +155,8 @@ class PANNS_CNN10(nn.Module):
         self.conv_block3 = ConvBlock(in_channels=128, out_channels=256)
         self.conv_block4 = ConvBlock(in_channels=256, out_channels=512)
 
+        self.pool = nn.AdaptiveAvgPool2d((1, 1))
+        
         self.fc1 = nn.Linear(512, self.emb_size)
         self.fc_audioset = nn.Linear(self.emb_size, 527)
         self.extract_embedding = extract_embedding
@@ -174,9 +181,11 @@ class PANNS_CNN10(nn.Module):
 
         x = self.conv_block4(x, pool_size=(2, 2), pool_type='avg')
         x = F.dropout(x, p=0.2, training=self.training)
-
-        x = x.mean(dim=3)
-        x = x.max(dim=2)[0] + x.mean(dim=2)
+        
+        x = self.pool(x)
+        x = x.reshape(-1, x.size(1))
+        # x = x.mean(dim=3)
+        # x = x.max(dim=2)[0] + x.mean(dim=2)
 
         x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu(self.fc1(x))
@@ -214,6 +223,8 @@ class PANNS_CNN14(nn.Module):
         self.conv_block5 = ConvBlock(in_channels=512, out_channels=1024)
         self.conv_block6 = ConvBlock(in_channels=1024, out_channels=2048)
 
+        self.pool = nn.AdaptiveAvgPool2d((1, 1))
+        
         self.fc1 = nn.Linear(2048, self.emb_size)
         self.fc_audioset = nn.Linear(self.emb_size, 527)
         self.extract_embedding = extract_embedding
@@ -245,8 +256,10 @@ class PANNS_CNN14(nn.Module):
         x = self.conv_block6(x, pool_size=(1, 1), pool_type='avg')
         x = F.dropout(x, p=0.2, training=self.training)
 
-        x = x.mean(dim=3)
-        x = x.max(dim=2)[0] + x.mean(dim=2)
+        x = self.pool(x)
+        x = x.reshape(-1, x.size(1))
+        # x = x.mean(dim=3)
+        # x = x.max(dim=2)[0] + x.mean(dim=2)
 
         x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu(self.fc1(x))

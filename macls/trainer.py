@@ -32,7 +32,6 @@ from macls.utils.utils import dict_to_object, plot_confusion_matrix, print_argum
 
 logger = setup_logger(__name__)
 
-
 class MAClsTrainer(object):
     def __init__(self, configs, use_gpu=True):
         """ macls集成工具类
@@ -166,7 +165,7 @@ class MAClsTrainer(object):
                 raise Exception(f'不支持优化方法：{optimizer}')
             # 学习率衰减函数
             self.scheduler = CosineAnnealingLR(self.optimizer, T_max=int(self.configs.train_conf.max_epoch * 1.2))
-
+            
     def __load_pretrained(self, pretrained_model):
         # 加载预训练模型
         if pretrained_model is not None:
@@ -297,6 +296,7 @@ class MAClsTrainer(object):
                             f'accuracy: {sum(accuracies) / len(accuracies):.5f}, '
                             f'learning rate: {self.scheduler.get_last_lr()[0]:>.8f}, '
                             f'speed: {train_speed:.2f} data/sec, eta: {eta_str}')
+                # logger.info(f"{self.scheduler.get_last_lr()}, {self.optimizer}")
                 writer.add_scalar('Train/Loss', sum(loss_sum) / len(loss_sum), self.train_step)
                 writer.add_scalar('Train/Accuracy', (sum(accuracies) / len(accuracies)), self.train_step)
                 # 记录学习率
@@ -455,4 +455,40 @@ class MAClsTrainer(object):
                                         'inference.pt')
         os.makedirs(os.path.dirname(infer_model_path), exist_ok=True)
         torch.jit.save(infer_model, infer_model_path)
+        logger.info("预测模型已保存：{}".format(infer_model_path))
+    
+    def export_onnx(self, save_model_path='models/', resume_model='models/EcapaTdnn_MelSpectrogram/best_model/'):
+        """
+        导出预测模型
+        :param save_model_path: 模型保存的路径
+        :param resume_model: 准备转换的模型路径
+        :return:
+        """
+        self.__setup_model(input_size=self.audio_featurizer.feature_dim)
+        # 加载预训练模型
+        if os.path.isdir(resume_model):
+            resume_model = os.path.join(resume_model, 'model.pt')
+        assert os.path.exists(resume_model), f"{resume_model} 模型不存在！"
+        model_state_dict = torch.load(resume_model)
+        self.model.load_state_dict(model_state_dict)
+        logger.info('成功恢复模型参数和优化方法参数：{}'.format(resume_model))
+        self.model.eval()
+        # 获取静态模型
+        infer_model = self.model
+        infer_model_path = os.path.join(save_model_path,
+                                        f'{self.configs.use_model}_{self.configs.preprocess_conf.feature_method}',
+                                        'end2end.onnx')
+        os.makedirs(os.path.dirname(infer_model_path), exist_ok=True)
+        
+        x = torch.rand((1, 98, 64), device=self.device)
+        
+        torch.onnx.export(infer_model,
+                          x,
+                          infer_model_path,
+                          opset_version=12,
+                          input_names=['input'],
+                          output_names=['result'])
+        
+        # torch.jit.save(infer_model, infer_model_path)
+        
         logger.info("预测模型已保存：{}".format(infer_model_path))
