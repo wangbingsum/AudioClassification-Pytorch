@@ -123,7 +123,8 @@ class MAClsPredictor:
     # 预测一个音频的特征
     def predict(self,
                 audio_data,
-                sample_rate=16000):
+                sample_rate=16000,
+                feature_save_path=None):
         """预测一个音频
 
         :param audio_data: 需要识别的数据，支持文件路径，文件对象，字节，numpy。如果是字节的话，必须是完整并带格式的字节文件
@@ -137,6 +138,8 @@ class MAClsPredictor:
         input_data = torch.tensor(input_data.samples, dtype=torch.float32, device=self.device).unsqueeze(0)
         input_len_ratio = torch.tensor([1], dtype=torch.float32, device=self.device)
         audio_feature, _ = self._audio_featurizer(input_data, input_len_ratio)
+        if feature_save_path is not None:
+            audio_feature.numpy().tofile(feature_save_path)
         # 执行预测
         output = self.predictor(audio_feature)
         result = torch.nn.functional.softmax(output, dim=-1)[0]
